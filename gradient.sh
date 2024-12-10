@@ -5,22 +5,32 @@ function check_install_docker() {
     if ! command -v docker &> /dev/null; then
         echo "Docker 未安装，开始安装..."
         curl -fsSL https://get.docker.com | sh
-        systemctl start docker
-        systemctl enable docker
-        echo "Docker 安装完成"
+        if [ $? -eq 0 ]; then
+            systemctl start docker
+            systemctl enable docker
+            echo "Docker 安装完成"
+        else
+            echo "Docker 安装失败"
+            return 1
+        fi
     else
         echo "Docker 已安装"
     fi
 
-    # 检查 Docker Compose
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose 未安装，开始安装..."
         curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose 安装完成"
+        if [ $? -eq 0 ]; then
+            chmod +x /usr/local/bin/docker-compose
+            echo "Docker Compose 安装完成"
+        else
+            echo "Docker Compose 安装失败"
+            return 1
+        fi
     else
         echo "Docker Compose 已安装"
     fi
+    return 0
 }
 
 REPO_DIR="Gradient"
@@ -29,7 +39,10 @@ PROXIES_FILE="$REPO_DIR/proxies.txt"
 # 启动 Gradient 函数
 function start_gradient() {
     # 首先检查并安装 Docker
-    check_install_docker
+    if ! check_install_docker; then
+        echo "Docker 或 Docker Compose 安装失败，无法继续操作。"
+        return 1
+    fi
 
     # 检查目录是否存在
     if [ -d "$REPO_DIR" ]; then
